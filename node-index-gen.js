@@ -21,19 +21,47 @@ function genFnSig(sig) {
 	return result;
 }
 
+function processMethod(meth, result) {
+	var name = meth.name;
+	var sig = meth.signatures[0];
+	var fnSig = genFnSig(sig);
+	result[name] = {
+		"!type": fnSig
+	};	
+}
+
 function processModule(m) {
 	var result = null;
 	if (m.methods) {
 		result = {};
 		m.methods.forEach(function (meth) {
-			var name = meth.name;
-			var sig = meth.signatures[0];
-			var fnSig = genFnSig(sig);
+			processMethod(meth,result);
+		});
+	}
+	if (m.classes) {
+		if (!result) {
+			result = {};
+		}
+		m.classes.forEach(function (klass) {
+			var name = klass.name;
+			// just take the part after the final '.'
+			if (name.indexOf(".") !== -1) {
+				name = name.substring(name.lastIndexOf(".")+1,name.length);
+			}
+			var klassMethods = {};
+			if (klass.methods) {
+				klass.methods.forEach(function (meth) {
+					processMethod(meth, klassMethods);
+				});
+			}
 			result[name] = {
-				"!type": fnSig
+				// assume a no-argument constructor for now
+				"!type": "fn()",
+				"prototype": klassMethods
 			};
 		});
 	}
+	
 	return result;
 }
 
