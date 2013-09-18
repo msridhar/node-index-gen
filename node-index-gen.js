@@ -12,12 +12,38 @@ function genFnSig(sig) {
 		if (paramName === "") {
 			paramName = "other";
 		}
+		if (params[i].optional) {
+			// only respect flag if remaining parameters are also
+			// optional
+			// TODO MS optimize if needed
+			var remainingOptional = true;
+			for (var j = i+1; j < params.length; j++) {
+				if (!params[j].optional) {
+					remainingOptional = false;
+					break;
+				}
+			}
+			if (remainingOptional) {
+				paramName += "?";			
+			}
+		}
 		result +=  paramName + ": Object";
 		if (i < params.length-1) {
 			result += ", ";
 		}
 	}
 	result += ")";
+	if (sig["return"]) {
+		var returnType = sig["return"].type;
+		if (returnType) {
+			if (returnType.indexOf("|") !== -1) {
+				// just pick the first one
+				returnType = returnType.substring(0, returnType.indexOf("|"));
+			}
+			returnType = returnType.replace(/\s+/g, '');
+			result += " -> " + returnType;
+		}
+	}
 	return result;
 }
 
@@ -106,11 +132,16 @@ var indexObj = {
 		"process": "Process"
 };
 
+// manual patches; try to minimize these
 typesObj.Process = {
 	"stdout": {
 		"!type": "+stream.Writable"
 	}
 };
+typesObj.fs.openSync = {
+	"!type": "fn(path: Object, flags: Object, mode?: Object) -> Number"
+};
+
 indexObj["!define"] = typesObj;
 var indexFileStr = "define(\"plugins/esprima/indexFiles/cleanNodeIndex\", [], function () {\n" +
 	"return " + JSON.stringify(indexObj, null, '\t') + ";\n});";
