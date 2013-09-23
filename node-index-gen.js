@@ -159,7 +159,27 @@ extend(indexObj, {
 		"!name": "node",
 		"this": "<top>",
 		"global": "<top>",
-		"process": "Process"
+		"buffer": "+Buffer",
+		"require": {
+			"!type": "fn()"
+		},
+		"__filename": "String",
+		"__dirname": "String",
+		"module": "Object",
+		"exports": "Object",
+		"setTimeout": {
+			"!type": "fn(cb: Object, ms: Number) -> Object"
+		},
+		"clearTimeout": {
+			"!type": "fn(t: Object)"
+		},
+		"setInterval": {
+			"!type": "fn(cb: Object, ms: Number) -> Object"
+		},
+		"clearInterval": {
+			"!type": "fn(t: Object)"
+		}
+		
 });
 
 typesObj.Process.stdout = {
