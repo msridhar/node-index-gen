@@ -161,7 +161,7 @@ extend(indexObj, {
 		"global": "<top>",
 		"buffer": "+Buffer",
 		"require": {
-			"!type": "fn()"
+			"!type": "fn(name: String) -> Object"
 		},
 		"__filename": "String",
 		"__dirname": "String",
