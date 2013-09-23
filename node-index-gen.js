@@ -3,6 +3,14 @@
 var fs = require('fs'),
     path = require('path');
 
+/**
+ * copy properties from src obj to dst obj
+ */
+function extend(dst, src) {
+	Object.keys(src).forEach(function (p) {
+		dst[p] = src[p];
+	});
+}
 function genFnSig(sig) {
 	var result = "fn(";
 	var params = sig.params;
@@ -56,34 +64,42 @@ function processMethod(meth, result) {
 	};	
 }
 
-function processModule(m) {
-	var result = null;
+function processProperty(prop, result) {
+	var name = prop.name;
+	// TODO try to parse a type?
+	result[name] = {
+		"!type": "Object"
+	};
+}
+
+function processMethodsAndProperties(m, result) {
 	if (m.methods) {
-		result = {};
 		m.methods.forEach(function (meth) {
 			processMethod(meth,result);
 		});
 	}
+	if (m.properties) {
+		m.properties.forEach(function (prop) {
+			processProperty(prop,result);
+		});		
+	}
+}
+function processModule(m) {
+	var result = {};
+	processMethodsAndProperties(m, result);
 	if (m.classes) {
-		if (!result) {
-			result = {};
-		}
 		m.classes.forEach(function (klass) {
 			var name = klass.name;
 			// just take the part after the final '.'
 			if (name.indexOf(".") !== -1) {
 				name = name.substring(name.lastIndexOf(".")+1,name.length);
 			}
-			var klassMethods = {};
-			if (klass.methods) {
-				klass.methods.forEach(function (meth) {
-					processMethod(meth, klassMethods);
-				});
-			}
+			var klassTypes = {};
+			processMethodsAndProperties(klass, klassTypes);
 			result[name] = {
 				// assume a no-argument constructor for now
 				"!type": "fn()",
-				"prototype": klassMethods
+				"prototype": klassTypes
 			};
 		});
 	}
@@ -101,9 +117,11 @@ var excluded = {
 };
 
 var docDir = process.argv[2];
+var outputFile = process.argv[3];
 var files = fs.readdirSync(docDir);
 
 var typesObj = {};
+var indexObj = {};
 
 files.forEach(function (filename) {
 	if (path.extname(filename) === ".json") {
@@ -111,41 +129,65 @@ files.forEach(function (filename) {
 		if (!excluded[moduleName]) {
 			var docJSON = JSON.parse(fs.readFileSync(docDir + "/" + filename) + "");
 			if (docJSON.modules && docJSON.modules[0]) {
-				var moduleIndex = processModule(docJSON.modules[0]);
-				if (moduleIndex) {
-					typesObj[moduleName] = moduleIndex;
-				}
+				var moduleResults = processModule(docJSON.modules[0]);
+				if (Object.keys(moduleResults).length > 0) {
+					typesObj[moduleName] = moduleResults;
+				} 
 			}
-		}
+			if (docJSON.globals) {
+				docJSON.globals.forEach(function (glob) {
+					var name = glob.name;
+					var globTypes = {};
+					processMethodsAndProperties(glob, globTypes);
+					// we capitalize the global name as the type name.
+					// hopefully this won't lead to conflicts
+					var globTypeName = name.charAt(0).toUpperCase() + name.slice(1);
+					typesObj[globTypeName] = globTypes;
+					indexObj[name] = globTypeName;
+				});
+			}	
+
+		} 
 	}
 });
-//var indexFileStr = "define(\"plugins/esprima/indexFiles/cleanNodeIndex\", [], function () {\n"
-//	+ "return {\n"
-//	+	"\"!name\": \"node\",\n"
-//	+	"\"!define\":";
 
 
-var indexObj = {
+indexObj["!define"] = typesObj;
+
+// manual patches; try to minimize these
+extend(indexObj, {
 		"!name": "node",
 		"this": "<top>",
 		"global": "<top>",
 		"process": "Process"
-};
+});
 
-// manual patches; try to minimize these
-typesObj.Process = {
-	"stdout": {
-		"!type": "+stream.Writable"
-	}
+typesObj.Process.stdout = {
+	"!type": "+stream.Writable"
 };
 typesObj.fs.openSync = {
 	"!type": "fn(path: Object, flags: Object, mode?: Object) -> Number"
 };
 
-indexObj["!define"] = typesObj;
-var indexFileStr = "define(\"plugins/esprima/indexFiles/cleanNodeIndex\", [], function () {\n" +
+var header = "/*******************************************************************************\n" + 
+			" * @license\n" + 
+			" * Copyright (c) 2013 IBM Corporation.\n" + 
+			" *\n" + 
+			" * THIS FILE IS PROVIDED UNDER THE TERMS OF THE ECLIPSE PUBLIC LICENSE\n" + 
+			" * (\"AGREEMENT\"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS FILE\n" + 
+			" * CONSTITUTES RECIPIENTS ACCEPTANCE OF THE AGREEMENT.\n" + 
+			" * You can obtain a current copy of the Eclipse Public License from\n" + 
+			" * http://www.opensource.org/licenses/eclipse-1.0.php\n" + 
+			" *\n" + 
+			" * Contributors:\n" + 
+			" *     Manu Sridharan (IBM) - Initial API and implementation\n" + 
+			" ******************************************************************************/\n" +
+			" /*global define */\n";
+var indexFileStr = header + "define(\"plugins/esprima/indexFiles/nodeIndex\", [], function () {\n" +
 	"return " + JSON.stringify(indexObj, null, '\t') + ";\n});";
-console.log(indexFileStr);
+
+fs.writeFileSync(outputFile, indexFileStr);
+
 
 
 
