@@ -11,6 +11,12 @@ function extend(dst, src) {
 		dst[p] = src[p];
 	});
 }
+
+/**
+ * given a signature object from node.js JSON docs,
+ * generate a string function signature suitable for
+ * an index file
+ */
 function genFnSig(sig) {
 	var result = "fn(";
 	var params = sig.params;
@@ -96,11 +102,19 @@ function processModule(m) {
 			}
 			var klassTypes = {};
 			processMethodsAndProperties(klass, klassTypes);
-			result[name] = {
+			var klassMethods = {};
+			if (klass.classMethods) {
+				klass.classMethods.forEach(function (meth) {
+					processMethod(meth,klassMethods);
+				});
+			}
+			var klassResult = {
 				// assume a no-argument constructor for now
 				"!type": "fn()",
 				"prototype": klassTypes
 			};
+			extend(klassResult, klassMethods);
+			result[name] = klassResult;
 		});
 	}
 	
@@ -159,7 +173,8 @@ extend(indexObj, {
 		"!name": "node",
 		"this": "<top>",
 		"global": "<top>",
-		"buffer": "+Buffer",
+		"buffer": "buffer",
+		"Buffer": "buffer.Buffer",
 		"require": {
 			"!type": "fn(name: String) -> Object"
 		},
@@ -187,6 +202,9 @@ typesObj.Process.stdout = {
 };
 typesObj.fs.openSync = {
 	"!type": "fn(path: Object, flags: Object, mode?: Object) -> Number"
+};
+typesObj.buffer.INSPECT_MAX_BYTES = {
+	"!type": "Number"
 };
 
 var header = "/*******************************************************************************\n" + 
