@@ -221,12 +221,10 @@ typesObj.buffer.INSPECT_MAX_BYTES = {
 var header = "/*******************************************************************************\n" + 
 			" * @license\n" + 
 			" * Copyright (c) 2013 IBM Corporation.\n" + 
-			" *\n" + 
-			" * THIS FILE IS PROVIDED UNDER THE TERMS OF THE ECLIPSE PUBLIC LICENSE\n" + 
-			" * (\"AGREEMENT\"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS FILE\n" + 
-			" * CONSTITUTES RECIPIENTS ACCEPTANCE OF THE AGREEMENT.\n" + 
-			" * You can obtain a current copy of the Eclipse Public License from\n" + 
-			" * http://www.opensource.org/licenses/eclipse-1.0.php\n" + 
+			" * All rights reserved. This program and the accompanying materials are made\n" + 
+			" * available under the terms of the Eclipse Public License v1.0\n" + 
+			" * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution\n" + 
+			" * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).\n" + 
 			" *\n" + 
 			" * Contributors:\n" + 
 			" *     Manu Sridharan (IBM) - Initial API and implementation\n" + 
